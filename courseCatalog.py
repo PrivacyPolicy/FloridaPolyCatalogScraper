@@ -5,6 +5,11 @@ from bs4 import BeautifulSoup
 semester = 7;
 url = 'http://floridapolytechnic.catalog.acalog.com/preview_program.php?catoid=' + str(semester) + '&poid=401&returnto=302'
 
+def fileOut(data):
+    f = open('output.txt', 'w')
+    f.write(data)
+    f.close()
+
 def getCourseData(id):
     url = 'http://floridapolytechnic.catalog.acalog.com/ajax/preview_course.php?catoid=' + str(semester) + '&coid=' + id + '&display_options=a%3A2%3A%7Bs%3A8%3A~location~%3Bs%3A7%3A~program~%3Bs%3A4%3A~core~%3Bs%3A4%3A~9085~%3B%7D&show'
 
@@ -22,7 +27,7 @@ def getCourseData(id):
         string = '['
         try:
             prereqs = soup.find_all('div', {'class': 'ajaxcourseindentfix'})[1]
-            print(soup)
+            print(str(prereqs.text.split('Prerequisites: ')[1]))
             # prereqs = soup.find_all('div', {'class': 'ajaxcourseindentfix'})[1]
             # a = prereqs.text.split('Prerequisites: ')[1]
             # b = a.split('Course Description:')[0]
@@ -79,8 +84,9 @@ with urllib.request.urlopen(url) as response:
                d = c.replace(' ', '')
                e = d.split("','")[1]
                f = e.split(',')[0].split("'")[0]
-               print(i.a);
-               if f != '2049': continue
+               if f != '2904': continue
+               print(url)
+               fileOut(url)
                course = getCourseData(f)
                #print(course)
        except KeyError:

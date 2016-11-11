@@ -11,12 +11,6 @@ url = 'file:C:/Users/Gabe/Documents/School/Etcetera/Scrapers/cache/preview_progr
 global numberToID
 numberToID = {}
 
-def fileOut(data):
-    f = open('output.txt', 'w')
-    f.write(str(data.encode('UTF-8')))
-    f.close()
-    print(str(data.encode('UTF-8')))
-
 def arrToStr(arr):
     string = '['
     for el in arr:
@@ -147,6 +141,34 @@ with urllib.request.urlopen(url) as response:
             pass #
 
     # find elective groups
+    electiveGroups = [];
+    # find all courses that say "courseA" OR "courseB" (AKA electives in my book)
+    for i in soup.find_all('li', {'class': 'acalog-adhoc acalog-adhoc-after'}):
+        if i.strong.text.upper() == 'OR':
+            a = i.previous_element.previous_element.previous_element.previous_element.previous_element.previous_element;
+            b = i.next_element.next_element.next_element.next_element.next_element;
+            group = [str(a).split("'")[3], str(b).split("'")[3]]
+            electiveGroups.append(group)
+    # find all courses that are in an HTML element grouping
+    for i in soup.find_all('div', {'class': 'acalog-core'}):
+        group = []
+        try:
+            a = i.h4.parent.find('ul')
+            b = str(a).split('showCourse') # logically close to each course id
+            for c in b:
+                try:
+                    d = c.split("'")[3] # the id (Staples: that was easy)
+                    group.append(d)
+                except IndexError:
+                    if DEBUG: print('This was junk data: ' + c)
+        except AttributeError:
+            if DEBUG: print('Not a group; move on')
+        if len(group) > 0:
+            electiveGroups.append(group)
+    print(electiveGroups)
+    # apply electiveGroups to the courseList object
 
-    # TODO convert to JSON
-    print(courseList)
+
+
+    # TODO convert to JSON before outputing to file
+    #print(courseList)

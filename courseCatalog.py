@@ -208,61 +208,22 @@ def getConcentrationData(url):
             except ValueError:
                 if DEBUG: print(course['id'] + '\'s coreq (' + courseID + ') isn\'t an elective (' + str(course['electivesInGroup']) + '), but that\'s okay')
 
-        # convert to JSON
-        # out = '[\n'
-        # space = ',\n        '
-        # for course in courseList:
-        #     out += '    {\n        '
-        #     out += '"id": ' + course['id'] + space
-        #     out += '"number": "' + course['number'] + '"' + space
-        #     out += '"name": "' + course['name'] + '"' + space
-        #     out += '"credits": ' + str(course['credits']) + space
-        #     out += '"description": "' + course['description'] + '"' + space
-        #     out += '"prereqs": '
-        #     if course['prereqs'] == 'null':
-        #         out += '[]'
-        #     else:
-        #         out += course['prereqs']
-        #     out += space
-        #     out += '"coreqs": ['
-        #     if course['coreq'] != 'null':
-        #         out += course['coreq']
-        #     out += ']' + space
-        #     out += '"electivesInGroup": ['
-        #     for elective in course['electivesInGroup']:
-        #         out += elective + ', '
-        #     if len(course['electivesInGroup']) > 0:
-        #         out = out[:-2]
-        #     out += ']'
-        #     out += '\n    },\n'
-        # if len(courseList) > 0:
-        #     out = out[:-2]
-        # out += '\n]\n'
-
         degrees[degree][concentration] = courseList
 
 
 # code starts running here
-print("Loading...")
-for i in range(0, 1):
-    url = 'http://floridapolytechnic.catalog.acalog.com/preview_program.php?catoid=' + str(semester) + '&poid=401'
+print('Loading...')
 
-    # start a thread to load data asynchronously
-    t = threading.Thread(target=getConcentrationData, args=(url,))
-    t.start()
-    t.join()
-
-# for d in degrees:
-#     print(d)
-#     for c in degrees[d]:
-#         print(c)
-#         for crs in range(0, len(degrees[d][c])):
-#             print(crs)
-#             degrees[d][c][crs] = json.loads(degrees[d][c][crs])
-
-jsonData = json.dumps(degrees, indent=4)
+with open('concentrations.txt') as f:
+    for line in f:
+        url = line
+        # start a thread to load data asynchronously
+        t = threading.Thread(target=getConcentrationData, args=(url,))
+        t.start()
+        t.join()
 
 # output to file
+jsonData = json.dumps(degrees, indent=4)
 with open('output.json', 'w') as fileObj:
     fileObj.write(jsonData)
     fileObj.close()

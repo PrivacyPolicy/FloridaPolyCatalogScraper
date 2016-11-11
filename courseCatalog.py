@@ -52,7 +52,12 @@ def getCourseData(id):
         numberToID[number] = id
         name = b.split(' - ')[1].strip()
 
-        description = ''
+        a = soup(text='Course Description:')[0].parent.parent # description and title
+        b = a.text.split('Course Description:')[1] # remove the title
+        c = str(b.encode('utf-8'))[2:-1] # convert to string, remove ends
+        d = c.replace('\\xc2\\xa0', '').replace('\\xc3\\x82', ' ') # rmv weird chars
+        e = d.replace('\\xe2\\x80\\x99', '\'').strip() # rmv weird chars
+        description = e
 
         credits = int(soup.find('strong').next_element.next_element)
 
@@ -98,7 +103,7 @@ def getCourseData(id):
         # Try to get all of the co-requisite data
         try:
             a = soup.find_all('div', {'class': 'ajaxcourseindentfix'})[1]
-            b = a(text='Co-requisite:')[0].parent.parent#a.find_all('p')[1] # <p> containing coreq data
+            b = a(text='Co-requisite:')[0].parent.parent # <p> containing coreq data
             b1 = b.text.replace('Co-requisite or Prerequisite:', 'Co-requisite:') # for my uses, a prereq & coreq is the same as just a coreq
             c = b1.split('Co-requisite: ')[1] # text containing class list
             d = str(c.encode('utf-8'))[2:-1] # remove anoying weird stuff at ends
@@ -233,5 +238,4 @@ with urllib.request.urlopen(url) as response:
 
     print('Data output to output.json')
 
-#TODO description
 #TODO threading

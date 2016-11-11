@@ -1,8 +1,7 @@
 import urllib.request
-import re
 import html5lib
 from bs4 import BeautifulSoup
-import json
+import threading
 
 DEBUG = False;
 
@@ -11,28 +10,22 @@ semester = 7;
 url = 'file:C:/Users/Gabe/Documents/School/Etcetera/Scrapers/cache/preview_program.php&catoid=7&poid=401.html'
 global numberToID
 numberToID = {}
-
-def arrToStr(arr):
-    string = '['
-    for el in arr:
-        string += el + ', '
-    return string[:-2] + ']'
+global courseList
+courseList = []
 
 def getCourseID(data):
     global numberToID
     a = data.split(' - ')[0] # potentially the course number
     b = a.replace(' ', '') # remove the space
-    try: # have we seen this class before?
+    try: # have we seen this course before?
         id = numberToID[b] # yes, return the value
-        # id += ' (' + b + ')'
         return id
     except KeyError:
-        # print('(' + data + ')')
-        return '-1' # no, this must be either junk or not a class we offer
+        return '-1' # no, this must be either junk or not a course we offer
 
-def courseIndForID(courses, id):
-    for courseInd in range(0, len(courses)):
-        if courses[courseInd]['id'] == id:
+def courseIndForID(id):
+    for courseInd in range(0, len(courseList)):
+        if courseList[courseInd]['id'] == id:
             return courseInd
     return -1
 
@@ -65,19 +58,19 @@ def getCourseData(id):
         try:
             a = soup.find_all('div', {'class': 'ajaxcourseindentfix'})[1]
             b = a.find('p') # <p> containing prereq data
-            c = b.text.split('Prerequisites: ')[1] # text containing class list
+            c = b.text.split('Prerequisites: ')[1] # text containing course list
             d = str(c.encode('utf-8'))[2:-1] # remove anoying weird stuff at ends
             e = d.replace('\\xc2\\xa0', '').replace('\\xc3\\x82', ' - ') # rmv weird chars
             f = e.replace(', ', ' and ').replace(' and or ', ' or ').replace(' and and ', ' and ') # some use commas instead of 'and'
             g = f.replace(' AND ', ' and ').replace(' OR ', ' or ') # fix capitalization inconsistancies
-            # g = class data in string form
+            # g = course data in string form
 
             a = g.split(' and ') # each of the potential courses
             array = '['
             for b in a:
                 c = b.split(' or ') # occasionally, you have to deal with 'or'
                 if len(c) > 1: array += '['
-                for d in range(0, len(c)): # each of the classes, either AND or OR
+                for d in range(0, len(c)): # each of the courses, either AND or OR
                     theId = getCourseID(c[d])
                     if theId != '-1':
                         array += theId + ', '
@@ -105,12 +98,12 @@ def getCourseData(id):
             a = soup.find_all('div', {'class': 'ajaxcourseindentfix'})[1]
             b = a(text='Co-requisite:')[0].parent.parent # <p> containing coreq data
             b1 = b.text.replace('Co-requisite or Prerequisite:', 'Co-requisite:') # for my uses, a prereq & coreq is the same as just a coreq
-            c = b1.split('Co-requisite: ')[1] # text containing class list
+            c = b1.split('Co-requisite: ')[1] # text containing course list
             d = str(c.encode('utf-8'))[2:-1] # remove anoying weird stuff at ends
             e = d.replace('\\xc2\\xa0', '').replace('\\xc3\\x82', ' - ') # rmv weird chars
             f = e.replace(', ', ' and ').replace(' and or ', ' or ').replace(' and and ', ' and ') # some use commas instead of 'and'
             g = f.replace(' AND ', ' and ').replace(' OR ', ' or ') # fix capitalization inconsistancies
-            # g = class data in string form
+            # g = course data in string form
 
             h = g.strip().replace(' ', '', 1) # remove first space...
             i = h.split(' ')[0] # ...which should make this the course number
@@ -120,17 +113,14 @@ def getCourseData(id):
             if DEBUG: print('index error for id: ' + id)
             pass # doesn't even have Co-requisites
 
-
-        # if coreq == 'null': return '0'
-        return {'id': id, 'number': number, 'name': name, 'credits': credits, 'description': description, 'prereqs': prereqs, 'coreq': coreq, 'electivesInGroup': []}
-
+        courseList.append({'id': id, 'number': number, 'name': name, 'credits': credits, 'description': description, 'prereqs': prereqs, 'coreq': coreq, 'electivesInGroup': []})
+        return
 
 with urllib.request.urlopen(url) as response:
     html = response.read()
 
     soup = BeautifulSoup(html, "html.parser")
 
-    courseList = [];
     # build course list
     for i in soup.find_all('li'):
         try:
@@ -141,12 +131,17 @@ with urllib.request.urlopen(url) as response:
                 d = c.replace(' ', '')
                 e = d.split("','")[1]
                 f = e.split(',')[0].split("'")[0]
-                course = getCourseData(f)
-                if course != 0: courseList.append(course)
+
+                # start a thread to load data asynchronously
+                # course = getCourseData(f)
+                t = threading.Thread(target=getCourseData, args=(f,))
+                t.start()
+                t.join()
         except KeyError:
             pass
 
-    # convert coreq temp ids to coreq internal ids
+    # post-process
+    # convert co-req temporary ids to co-req internal ids
     for course in courseList:
         try:
             course['coreq'] = numberToID[course['coreq']]
@@ -179,12 +174,11 @@ with urllib.request.urlopen(url) as response:
             if DEBUG: print('Not a group; move on')
         if len(group) > 0:
             electiveGroups.append(group)
-    # print(electiveGroups)
 
     # apply electiveGroups to the courseList object
     for group in electiveGroups:
         for course in group:
-            ind = courseIndForID(courseList, course)
+            ind = courseIndForID(course)
             for addCourse in group:
                 if addCourse == course: continue
                 courseList[ind]['electivesInGroup'].append(addCourse)
@@ -196,9 +190,6 @@ with urllib.request.urlopen(url) as response:
             course['electivesInGroup'].remove(courseID)
         except ValueError:
             if DEBUG: print(course['id'] + '\'s coreq (' + courseID + ') isn\'t an elective (' + str(course['electivesInGroup']) + '), but that\'s okay')
-
-    # for l in courseList:
-    #     print('----------\n' + str(l))
 
     # convert to JSON
     out = '[\n'
@@ -237,5 +228,3 @@ with urllib.request.urlopen(url) as response:
         fileObj.close()
 
     print('Data output to output.json')
-
-#TODO threading

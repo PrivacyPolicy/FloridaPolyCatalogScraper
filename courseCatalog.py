@@ -2,6 +2,7 @@ import urllib.request
 import re
 import html5lib
 from bs4 import BeautifulSoup
+import json
 
 DEBUG = False;
 
@@ -17,7 +18,7 @@ def arrToStr(arr):
         string += el + ', '
     return string[:-2] + ']'
 
-def getClassID(data):
+def getCourseID(data):
     global numberToID
     a = data.split(' - ')[0] # potentially the course number
     b = a.replace(' ', '') # remove the space
@@ -28,6 +29,12 @@ def getClassID(data):
     except KeyError:
         # print('(' + data + ')')
         return '-1' # no, this must be either junk or not a class we offer
+
+def courseIndForID(courses, id):
+    for courseInd in range(0, len(courses)):
+        if courses[courseInd]['id'] == id:
+            return courseInd
+    return -1
 
 def getCourseData(id):
     global numberToID
@@ -43,7 +50,9 @@ def getCourseData(id):
         b = a.string
         number = b.split(' - ')[0].replace(' ', '')
         numberToID[number] = id
-        name = b.split(' - ')[1]
+        name = b.split(' - ')[1].strip()
+
+        description = ''
 
         credits = int(soup.find('strong').next_element.next_element)
 
@@ -64,7 +73,7 @@ def getCourseData(id):
                 c = b.split(' or ') # occasionally, you have to deal with 'or'
                 if len(c) > 1: array += '['
                 for d in range(0, len(c)): # each of the classes, either AND or OR
-                    theId = getClassID(c[d])
+                    theId = getCourseID(c[d])
                     if theId != '-1':
                         array += theId + ', '
                 if len(c) > 1: array = array[:-2] + '], '
@@ -89,7 +98,7 @@ def getCourseData(id):
         # Try to get all of the co-requisite data
         try:
             a = soup.find_all('div', {'class': 'ajaxcourseindentfix'})[1]
-            b = a.find_all('p')[1] # <p> containing coreq data
+            b = a(text='Co-requisite:')[0].parent.parent#a.find_all('p')[1] # <p> containing coreq data
             b1 = b.text.replace('Co-requisite or Prerequisite:', 'Co-requisite:') # for my uses, a prereq & coreq is the same as just a coreq
             c = b1.split('Co-requisite: ')[1] # text containing class list
             d = str(c.encode('utf-8'))[2:-1] # remove anoying weird stuff at ends
@@ -108,7 +117,7 @@ def getCourseData(id):
 
 
         # if coreq == 'null': return '0'
-        return {'id': id, 'number': number, 'name': name, 'credits': credits, 'prereqs': prereqs, 'coreq': coreq}
+        return {'id': id, 'number': number, 'name': name, 'credits': credits, 'description': description, 'prereqs': prereqs, 'coreq': coreq, 'electivesInGroup': []}
 
 
 with urllib.request.urlopen(url) as response:
@@ -165,10 +174,64 @@ with urllib.request.urlopen(url) as response:
             if DEBUG: print('Not a group; move on')
         if len(group) > 0:
             electiveGroups.append(group)
-    print(electiveGroups)
+    # print(electiveGroups)
+
     # apply electiveGroups to the courseList object
+    for group in electiveGroups:
+        for course in group:
+            ind = courseIndForID(courseList, course)
+            for addCourse in group:
+                if addCourse == course: continue
+                courseList[ind]['electivesInGroup'].append(addCourse)
 
+    # remove any electives if they are also co-reqs (i.e. Chem/Chem Lab)
+    for course in courseList:
+        courseID = course['coreq']
+        try:
+            course['electivesInGroup'].remove(courseID)
+        except ValueError:
+            if DEBUG: print(course['id'] + '\'s coreq (' + courseID + ') isn\'t an elective (' + str(course['electivesInGroup']) + '), but that\'s okay')
 
+    # for l in courseList:
+    #     print('----------\n' + str(l))
 
-    # TODO convert to JSON before outputing to file
-    #print(courseList)
+    # convert to JSON
+    out = '[\n'
+    space = ',\n        '
+    for course in courseList:
+        out += '    {\n        '
+        out += '"id": ' + course['id'] + space
+        out += '"number": "' + course['number'] + '"' + space
+        out += '"name": "' + course['name'] + '"' + space
+        out += '"credits": ' + str(course['credits']) + space
+        out += '"description": "' + course['description'] + '"' + space
+        out += '"prereqs": '
+        if course['prereqs'] == 'null':
+            out += '[]'
+        else:
+            out += course['prereqs']
+        out += space
+        out += '"coreqs": ['
+        if course['coreq'] != 'null':
+            out += course['coreq']
+        out += ']' + space
+        out += '"electivesInGroup": ['
+        for elective in course['electivesInGroup']:
+            out += elective + ', '
+        if len(course['electivesInGroup']) > 0:
+            out = out[:-2]
+        out += ']'
+        out += '\n    },\n'
+    if len(courseList) > 0:
+        out = out[:-2]
+    out += '\n]\n'
+
+    # output to file
+    with open('output.json', 'w') as fileObj:
+        fileObj.write(out)
+        fileObj.close()
+
+    print('Data output to output.json')
+
+#TODO description
+#TODO threading

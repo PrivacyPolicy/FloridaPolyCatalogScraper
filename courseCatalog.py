@@ -13,6 +13,12 @@ def fileOut(data):
     f.close()
     print(str(data.encode('UTF-8')))
 
+def arrToStr(arr):
+    string = '['
+    for el in arr:
+        string += str(el.encode('utf-8')) + ', '
+    return string[:-2] + ']'
+
 def getCourseData(id):
     #url = 'http://floridapolytechnic.catalog.acalog.com/ajax/preview_course.php?catoid=' + str(semester) + '&coid=' + id + '&display_options=a%3A2%3A%7Bs%3A8%3A~location~%3Bs%3A7%3A~program~%3Bs%3A4%3A~core~%3Bs%3A4%3A~9085~%3B%7D&show'
     url = 'file:C:/Users/Gabe/Documents/School/Etcetera/Scrapers/cache/preview_course.php.html&catoid=7&coid=' + id + ".html";
@@ -30,19 +36,15 @@ def getCourseData(id):
 
         string = ''
         try:
-            # a = soup.find_all('div', {'class': 'ajaxcourseindentfix'})[1]
-            # b = a.text.split('Prerequisites: ')[1]
-            # try:
-            #     prereqs = b.split('Co-requisite')[0]
-            # except ValueError:
-            #     prereqs = b.split('Course')[0]
-
             a = soup.find_all('div', {'class': 'ajaxcourseindentfix'})[1]
-            # b = a.find('p') # <p> containing prereq data
-            # c = b.text.split('</strong>')[1] # text containing class list
-            # d = c.replace(',', ' and') # some use commas, some use and...
+            b = a.find('p') # <p> containing prereq data
+            c = b.text.split('Prerequisites: ')[1] # text containing class list
+            d = str(c.encode('utf-8'))[2:-1] # remove anoying weird stuff at end
+            e = d.replace(',', ' and') # some use commas instead of and
+            prereqs = e.replace('\\xc2', ' ').replace('\\xa0', ' ').replace('\\xc3', ' ').replace('\\x82', ' ') # rmv weird chars
 
-            string += '\n\n-' + str(id) + '-----------------------------\n\n' + str(a.prettify().encode('UTF-8'))
+            string += '\n\n-' + str(id) + '-----------------------------\n\n' + prereqs
+
             # prereqs = soup.find_all('div', {'class': 'ajaxcourseindentfix'})[1]
             # a = prereqs.text.split('Prerequisites: ')[1]
             # b = a.split('Course Description:')[0]
@@ -70,6 +72,7 @@ def getCourseData(id):
             #     else:
             #         string += ']'
         except IndexError:
+            print("index error")
             pass # doesn't even have Prerequisites
         try:
             pass
@@ -89,7 +92,7 @@ with urllib.request.urlopen(url) as response:
 
    soup = BeautifulSoup(html, "html.parser")
 
-   count = 0;
+   count = -5;
    for i in soup.find_all('li'):
        try:
            if i.attrs['class'][0] == 'acalog-course':

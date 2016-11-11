@@ -1,1 +1,1 @@
-b'file:C:/Users/Gabe/Documents/School/Etcetera/Scrapers/cache/preview_course.php.html&catoid=7&coid=2904.html\n\n-------------------------------------\n\n'
+b"\n\n-2984-----------------------------\n\nb'<p>\\n <strong>\\n  Prerequisites:\\n </strong>\\n None\\n <br/>\\n</p>\\n'"

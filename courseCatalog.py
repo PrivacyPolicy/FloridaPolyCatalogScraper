@@ -108,6 +108,10 @@ def getCourseData(semester, degree, concentration, id):
             if DEBUG: print('index error for id: ' + id)
             pass # doesn't even have Co-requisites
 
+        # only add if the class doesn't already exist
+        for course in degrees[degree][concentration]:
+            if course['id'] == int(id): return
+            
         degrees[degree][concentration].append({'id': int(id), 'number': number, 'name': name, 'credits': credits, 'description': description, 'prereqs': prereqs, 'coreq': coreq, 'electivesInGroup': []})
         return
 
@@ -209,6 +213,10 @@ def getConcentrationData(url):
                 course['electivesInGroup'].remove(courseID)
             except ValueError:
                 if DEBUG: print(course['id'] + '\'s coreq (' + courseID + ') isn\'t an elective (' + str(course['electivesInGroup']) + '), but that\'s okay')
+
+        # remove any duplicate electives
+        for course in courseList:
+            course['electivesInGroup'] = list(set(course['electivesInGroup']))
 
         degrees[degree][concentration] = courseList
 

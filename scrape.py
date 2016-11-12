@@ -111,7 +111,7 @@ def getCourseData(semester, degree, concentration, id):
         # only add if the class doesn't already exist
         for course in degrees[degree][concentration]:
             if course['id'] == int(id): return
-            
+
         degrees[degree][concentration].append({'id': int(id), 'number': number, 'name': name, 'credits': credits, 'description': description, 'prereqs': prereqs, 'coreq': coreq, 'electivesInGroup': []})
         return
 

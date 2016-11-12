@@ -169,7 +169,7 @@ def getConcentrationData(url):
         electiveGroups = [];
         # find all courses that say "courseA" OR "courseB" (AKA electives in my book)
         for i in soup.find_all('li', {'class': 'acalog-adhoc'}):
-            if str(i).upper().strip() == 'OR':
+            if i.text.upper().strip() == 'OR':
                 a = i.previous_element.previous_element.previous_element.previous_element.previous_element.previous_element;
                 b = i.next_element.next_element.next_element.next_element.next_element;
                 group = [str(a).split("'")[3], str(b).split("'")[3]]

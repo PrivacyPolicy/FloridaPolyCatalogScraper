@@ -7,7 +7,6 @@ import json
 
 DEBUG = False;
 
-semester = 7;
 global numberToID
 numberToID = {}
 global degrees
@@ -29,7 +28,7 @@ def courseIndForID(courseList, id):
             return courseInd
     return -1
 
-def getCourseData(degree, concentration, id):
+def getCourseData(semester, degree, concentration, id):
     global numberToID
     global DEBUG
     url = 'http://floridapolytechnic.catalog.acalog.com/ajax/preview_course.php?catoid=' + str(semester) + '&coid=' + id + '&display_options=a%3A2%3A%7Bs%3A8%3A~location~%3Bs%3A7%3A~program~%3Bs%3A4%3A~core~%3Bs%3A4%3A~9085~%3B%7D&show'
@@ -117,6 +116,9 @@ def getConcentrationData(url):
         html = response.read()
         soup = BeautifulSoup(html, 'html5lib')
 
+        # get semester from url
+        semester = url.split('=')[1].split('&')[0]
+
         # get degree title
         for a in soup.find_all('p'): # degree in element
             try:
@@ -146,7 +148,7 @@ def getConcentrationData(url):
                     f = e.split(',')[0].split("'")[0]
 
                     # start a thread to load data asynchronously
-                    t = threading.Thread(target=getCourseData, args=(degree,concentration,f,))
+                    t = threading.Thread(target=getCourseData, args=(semester,degree,concentration,f,))
                     t.start()
                     t.join()
             except KeyError:
@@ -166,8 +168,8 @@ def getConcentrationData(url):
         # find elective groups
         electiveGroups = [];
         # find all courses that say "courseA" OR "courseB" (AKA electives in my book)
-        for i in soup.find_all('li', {'class': 'acalog-adhoc acalog-adhoc-after'}):
-            if i.strong.text.upper() == 'OR':
+        for i in soup.find_all('li', {'class': 'acalog-adhoc'}):
+            if str(i).upper().strip() == 'OR':
                 a = i.previous_element.previous_element.previous_element.previous_element.previous_element.previous_element;
                 b = i.next_element.next_element.next_element.next_element.next_element;
                 group = [str(a).split("'")[3], str(b).split("'")[3]]

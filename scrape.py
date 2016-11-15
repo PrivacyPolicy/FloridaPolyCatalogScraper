@@ -49,7 +49,6 @@ def getCourseData(semester, degree, concentration, id):
         a = soup.find('h3')
         b = a.string
         number = b.split(' - ')[0].replace(' ', '')
-        numberToID[number] = id
         name = b.split(' - ')[1].strip()
 
         a = soup(text='Course Description:')[0].parent.parent # description and title
@@ -206,13 +205,33 @@ def getConcentrationData(url):
                     c = b.attrs['onclick']
                     d = c.replace(' ', '')
                     e = d.split("','")[1]
-                    f = e.split(',')[0].split("'")[0]
+                    f = e.split(',')[0].split("'")[0] # course id str
 
+                                                   # ENC 1101 - blah blah
+                    g = b.text.replace(' ', '', 1) # ENC1101 - blah blah
+                    h = g.split(' ')[0]            # ENC1101: course number
+                    # add to the database of numbers to ids
+                    numberToID[h] = int(f)
+            except KeyError:
+                pass
+            except IndexError:
+                pass
+        for i in soup.find_all('li'):
+            try:
+                if i.attrs['class'][0] == 'acalog-course':
+                    a = i.contents[0]
+                    b = a.contents[0]
+                    c = b.attrs['onclick']
+                    d = c.replace(' ', '')
+                    e = d.split("','")[1]
+                    f = e.split(',')[0].split("'")[0] # course id str
                     # start a thread to load data asynchronously
                     t = threading.Thread(target=getCourseData, args=(semester,degree,concentration,f,))
                     t.start()
                     t.join()
             except KeyError:
+                pass
+            except IndexError:
                 pass
 
         courseList = degrees[degree][concentration]

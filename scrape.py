@@ -22,6 +22,15 @@ def getCourseID(data):
     except KeyError:
         return '-1' # no, this must be either junk or not a course we offer
 
+def courseIDFromText(text): #ENC 1101 - Happy Course
+    a = text.replace(' ', '', 1) #ENC1101 - Happy Course
+    b = a.split(' ')[0] #ENC1101
+    try:
+        c = int(numberToID[b])
+        return c
+    except KeyError:
+        return -1
+
 def courseIndForID(courseList, id):
     for courseInd in range(0, len(courseList)):
         if str(courseList[courseInd]['id']) == str(id):
@@ -54,39 +63,87 @@ def getCourseData(semester, degree, concentration, id):
 
         # all of this... ALL. OF. THIS. To get a nice list of prereqs
         try:
-            a = soup.find_all('div', {'class': 'ajaxcourseindentfix'})[1]
+
+            # first of all.. does this even have prereqs???
+            prereqIndic = soup.find('strong', text='Prerequisites:')
+            if prereqIndic is None:
+                [1][1] # throw an index error to end all this
+
+            COMMA = 'b\', \''
+            AND = 'b\'\\xc3\\x82\\xc2\\xa0and \''
+            OR = 'b\'\\xc3\\x82\\xc2\\xa0or \''
+            SPACE = 'b\'\\xc3\\x82\\xc2\\xa0\''
+
+            # Testing right here y'all
+            a = soup.find_all('div', {'class': 'ajaxcourseindentfix'})[1] #prereq data
             b = a.find('p') # <p> containing prereq data
-            c = b.text.split('Prerequisites: ')[1] # text containing course list
-            d = str(c.encode('utf-8'))[2:-1] # remove anoying weird stuff at ends
-            e = d.replace('\\xc2\\xa0', '').replace('\\xc3\\x82', ' - ') # rmv weird chars
-            f = e.replace(', ', ' and ').replace(' and or ', ' or ').replace(' and and ', ' and ') # some use commas instead of 'and'
-            g = f.replace(' AND ', ' and ').replace(' OR ', ' or ') # fix capitalization inconsistancies
-            # g = course data in string form
+            c = b.contents
 
-            a = g.split(' and ') # each of the potential courses
+            prIDs = ['2904', '3029', '3037', '3023']
             array = []
-            for b in a:
-                c = b.split(' or ') # occasionally, you have to deal with 'or'
-                orray = []
-                for d in range(0, len(c)): # each of the courses, either AND or OR
-                    theId = getCourseID(c[d])
-                    if theId != '-1':
-                        orray.append(int(theId))
-                if len(orray) > 1:
-                    array.append(orray)
-                else:
-                    try:
-                        array.append(orray[0])
-                    except IndexError:
-                        # wasn't anything in orray, move on
-                        pass
+            for d in range(2, len(c) - 1):
+                e = str(c[d].encode('utf-8')).lower()
+                f = c[d - 2] # two elements ago; could be anded prereq <a>
+                g = c[d + 1] # next element; also could be anded prereq <a>
+                # if id == '2982': print('\n\n---------------------------\n:::' + e + '\n\n')
+                try:
+                    if e == AND or e == COMMA or e == SPACE:
+                        h = courseIDFromText(f.text)
+                        i = courseIDFromText(g.text)
+                        if len(array) < 1: array.append(h)
+                        array.append(i)
+                    elif e == OR:
+                        h = courseIDFromText(f.text)
+                        i = courseIDFromText(g.text)
+                        if len(array) < 1: array.append(h)
+                        j = array[len(array) - 1] # most recently added number
+                        if type(j) is int:
+                            array[len(array) - 1] = [j, i]
+                        elif type(j) is list:
+                            array[len(array) - 1].append(i)
+                except AttributeError:
+                    print('That space was misleading, just keep swimming')
+                    pass
+            # if nothing was found, there's only one prereq
+            if len(array) == 0:
+                try:
+                    d = b.find('a') # assumed only one link
+                    e = d.text # which has the course number
+                    f = courseIDFromText(e) # so extract it
+                    array = [f] # and add it to the array
+                except AttributeError:
+                    pass
+            # remove any non-provided classes in the arrays
+            # also remove if it's the same as the current class
+            for h in array:
+                if type(h) is int:
+                    if h == -1 or h == int(id):
+                        array.remove(h)
+                elif type(h) is list:
+                    for i in h:
+                        if i == -1 or i == int(id):
+                            h.remove(i)
+            # remove any 0-length arrays caused by above
+            for i in array:
+                if type(i) is list:
+                    if len(i) == 0:
+                        array.remove(i)
+            # remove any single-element sublists caused by above operation
+            for i in range(0, len(array)):
+                if type(array[i]) is list:
+                    if len(array[i]) == 1:
+                        array[i] = array[i][0]
+            prereqs = array[:]
 
-            prereqs = array # prereqs = prereq data in str(array) form
+            # t = [];
+            # for j in prereqs:
+            #     for k, v in numberToID.items():
+            #         if v == str(j): t.append(k)
+            # print(number + '\'s prereqs: ' + str(prereqs))
+            # print(number + '\'s prereqs: ' + str(t))
         except IndexError:
             prereqs = []
-            if DEBUG: print('index error for id: ' + id)
-            pass # doesn't even have Prerequisites
-
+            pass
 
         # Try to get all of the co-requisite data
         try:

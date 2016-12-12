@@ -222,6 +222,8 @@ def getConcentrationData(url):
                 pass
             except IndexError:
                 pass
+        # Keep track of all the threads to join them
+        threads = []
         for i in soup.find_all('li'):
             try:
                 if i.attrs['class'][0] == 'acalog-course':
@@ -234,11 +236,14 @@ def getConcentrationData(url):
                     # start a thread to load data asynchronously
                     t = threading.Thread(target=getCourseData, args=(semester,degree,concentration,f,))
                     t.start()
-                    t.join()
+                    threads.append(t)
             except KeyError:
                 pass
             except IndexError:
                 pass
+        # prevent any more code from running until all is scraped
+        for i in threads:
+            i.join()
 
         courseList = degrees[degree][concentration]
         # post-process

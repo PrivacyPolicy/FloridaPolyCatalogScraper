@@ -11,6 +11,8 @@ global numberToID
 numberToID = {}
 global degrees
 degrees = {}
+global pageCounter
+pageCounter = 0
 
 def getCourseID(data):
     global numberToID
@@ -40,11 +42,15 @@ def courseIndForID(courseList, id):
 def getCourseData(semester, degree, concentration, id):
     global numberToID
     global DEBUG
+    global pageCounter
     url = 'http://floridapolytechnic.catalog.acalog.com/ajax/preview_course.php?catoid=' + str(semester) + '&coid=' + id + '&display_options=a%3A2%3A%7Bs%3A8%3A~location~%3Bs%3A7%3A~program~%3Bs%3A4%3A~core~%3Bs%3A4%3A~9085~%3B%7D&show'
 
     with urllib.request.urlopen(url) as response:
         html = response.read()
         soup = BeautifulSoup(html, 'html5lib')
+
+        pageCounter += 1
+        print('Page ' + str(pageCounter))
 
         a = soup.find('h3')
         b = a.string

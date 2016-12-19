@@ -314,10 +314,8 @@ print('Loading...')
 with open('concentrations.txt') as f:
     for line in f:
         url = line
-        # start a thread to load data asynchronously
-        t = threading.Thread(target=getConcentrationData, args=(url,))
-        t.start()
-        t.join()
+        # load data synchronously
+        getConcentrationData(url)
 
 # output to file
 jsonData = json.dumps(degrees, indent=4)

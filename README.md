@@ -26,7 +26,7 @@ When finished, the data is saved in `output.json`
                 prereqs: list of prerequisites for the course. A sub-list
                          (i.e. [3890, 2003] below) means that either course can be taken
                          (below equates to "2901 AND 3904 AND (3890 OR 2003) AND 3902")
-                coreqs: list of length one, containing the co-requisite for the course
+                coreq: list of length one, containing the co-requisite for the course
                 electivesInGroup: the courses that can't be taken at the same time as this one
             },
             ...

@@ -314,6 +314,9 @@ print('Loading...')
 with open('concentrations.txt') as f:
     for line in f:
         url = line
+        # ignore lines that start with //
+        if url[0:2] == '//':
+            continue
         # load data synchronously
         getConcentrationData(url)
 

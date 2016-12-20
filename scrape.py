@@ -151,22 +151,24 @@ def getCourseData(semester, degree, concentration, id):
             pass
 
         # Try to get all of the co-requisite data
+        coreqs = []
         try:
             a = soup.find_all('div', {'class': 'ajaxcourseindentfix'})[1]
-            b = a(text='Co-requisite:')[0].parent.parent # <p> containing coreq data
-            b1 = b.text.replace('Co-requisite or Prerequisite:', 'Co-requisite:') # for my uses, a prereq & coreq is the same as just a coreq
-            c = b1.split('Co-requisite: ')[1] # text containing course list
-            d = str(c.encode('utf-8'))[2:-1] # remove anoying weird stuff at ends
-            e = d.replace('\\xc2\\xa0', '').replace('\\xc3\\x82', ' - ') # rmv weird chars
-            f = e.replace(', ', ' and ').replace(' and or ', ' or ').replace(' and and ', ' and ') # some use commas instead of 'and'
-            g = f.replace(' AND ', ' and ').replace(' OR ', ' or ') # fix capitalization inconsistancies
-            # g = course data in string form
+            b = a(text=['Co-requisite:', 'Co-requisite or Prerequisite:'])
+            for i in b:
+                b0 = i.parent.parent # <p> containing coreq data
+                b1 = b0.text.replace('Co-requisite or Prerequisite:', 'Co-requisite:') # for my uses, a prereq & coreq is the same as just a coreq
+                c = b1.split('Co-requisite: ')[1] # text containing course list
+                d = str(c.encode('utf-8'))[2:-1] # remove anoying weird stuff at ends
+                e = d.replace('\\xc2\\xa0', '').replace('\\xc3\\x82', ' - ') # rmv weird chars
+                f = e.replace(', ', ' and ').replace(' and or ', ' or ').replace(' and and ', ' and ') # some use commas instead of 'and'
+                g = f.replace(' AND ', ' and ').replace(' OR ', ' or ') # fix capitalization inconsistancies
+                # g = course data in string form
 
-            h = g.strip().replace(' ', '', 1) # remove first space...
-            i = h.split(' ')[0] # ...which should make this the course number
-            coreqs = [i] # pass that because we haven't built the entire numberToID array yet
+                h = g.strip().replace(' ', '', 1) # remove first space...
+                j = h.split(' ')[0] # ...which should make this the course number
+                coreqs.append(j) # pass that because we haven't built the entire numberToID array yet
         except IndexError:
-            coreqs = []
             if DEBUG: print('index error for id: ' + id)
             pass # doesn't even have Co-requisites
 
@@ -175,7 +177,6 @@ def getCourseData(semester, degree, concentration, id):
             if course['id'] == int(id): return
 
         degrees[degree][concentration].append({'id': int(id), 'number': number, 'name': name, 'credits': credits, 'description': description, 'prereqs': prereqs, 'coreqs': coreqs, 'electivesInGroup': []})
-        return
 
 def getConcentrationData(url):
     with urllib.request.urlopen(url) as response:
@@ -250,7 +251,8 @@ def getConcentrationData(url):
         # convert co-req temporary ids to co-req internal ids
         for course in courseList:
             try:
-                course['coreqs'] = [int(numberToID[course['coreqs'][0]])]
+                for i in range(0, len(course['coreqs'])):
+                    course['coreqs'][i] = int(numberToID[course['coreqs'][i]])
             except KeyError:
                 if DEBUG: print('No coreqs in course ' + course['id'])
             except IndexError:

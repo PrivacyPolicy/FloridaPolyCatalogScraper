@@ -164,9 +164,9 @@ def getCourseData(semester, degree, concentration, id):
 
             h = g.strip().replace(' ', '', 1) # remove first space...
             i = h.split(' ')[0] # ...which should make this the course number
-            coreq = [i] # pass that because we haven't built the entire numberToID array yet
+            coreqs = [i] # pass that because we haven't built the entire numberToID array yet
         except IndexError:
-            coreq = []
+            coreqs = []
             if DEBUG: print('index error for id: ' + id)
             pass # doesn't even have Co-requisites
 
@@ -174,7 +174,7 @@ def getCourseData(semester, degree, concentration, id):
         for course in degrees[degree][concentration]:
             if course['id'] == int(id): return
 
-        degrees[degree][concentration].append({'id': int(id), 'number': number, 'name': name, 'credits': credits, 'description': description, 'prereqs': prereqs, 'coreq': coreq, 'electivesInGroup': []})
+        degrees[degree][concentration].append({'id': int(id), 'number': number, 'name': name, 'credits': credits, 'description': description, 'prereqs': prereqs, 'coreqs': coreqs, 'electivesInGroup': []})
         return
 
 def getConcentrationData(url):
@@ -250,9 +250,9 @@ def getConcentrationData(url):
         # convert co-req temporary ids to co-req internal ids
         for course in courseList:
             try:
-                course['coreq'] = [int(numberToID[course['coreq'][0]])]
+                course['coreqs'] = [int(numberToID[course['coreqs'][0]])]
             except KeyError:
-                if DEBUG: print('No coreq in course ' + course['id'])
+                if DEBUG: print('No coreqs in course ' + course['id'])
             except IndexError:
                 pass # no coreqs, move on
 
@@ -293,9 +293,9 @@ def getConcentrationData(url):
         # remove any electives if they are also co-reqs (i.e. Chem/Chem Lab)
         for course in courseList:
             try:
-                courseID = course['coreq'][0]
+                courseID = course['coreqs'][0]
             except IndexError:
-                continue # no coreq, so just move one
+                continue # no coreqs, so just move on
             try:
                 course['electivesInGroup'].remove(courseID)
             except ValueError:

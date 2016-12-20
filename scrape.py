@@ -74,40 +74,44 @@ def getCourseData(semester, degree, concentration, id):
             if prereqIndic is None:
                 [1][1] # throw an index error to end all this
 
-            COMMA = 'b\', \''
-            AND = 'b\'\\xc3\\x82\\xc2\\xa0and \''
-            OR = 'b\'\\xc3\\x82\\xc2\\xa0or \''
-            SPACE = 'b\'\\xc3\\x82\\xc2\\xa0\''
+            COMMA = ','
+            AND = 'and'
+            OR = 'or'
+            SPACE = ''
 
             # Testing right here y'all
             a = soup.find_all('div', {'class': 'ajaxcourseindentfix'})[1] #prereq data
             b = a.find('p') # <p> containing prereq data
             c = b.contents
 
-            prIDs = ['2904', '3029', '3037', '3023']
             array = []
+            regex = re.compile(r'(\\xc2|\'|\\xc3|\\x82|\\xa0| )')
             for d in range(2, len(c) - 1):
                 e = str(c[d].encode('utf-8')).lower()
+                e0 = regex.sub('', e[1:]) # remove first and all extra characters
                 f = c[d - 2] # two elements ago; could be anded prereq <a>
                 g = c[d + 1] # next element; also could be anded prereq <a>
-                # if id == '2982': print('\n\n---------------------------\n:::' + e + '\n\n')
                 try:
-                    if e == AND or e == COMMA or e == SPACE:
+                    if e0 == AND or e0 == COMMA or e0 == SPACE:
                         h = courseIDFromText(f.text)
                         i = courseIDFromText(g.text)
-                        if len(array) < 1: array.append(h)
+                        if len(array) < 1:
+                            array.append(h)
                         array.append(i)
-                    elif e == OR:
+                    elif e0 == OR:
                         h = courseIDFromText(f.text)
                         i = courseIDFromText(g.text)
-                        if len(array) < 1: array.append(h)
-                        j = array[len(array) - 1] # most recently added number
+                        if len(array) > 0:
+                            j = array[len(array) - 1] # most recently added number
+                        else:
+                            array.append(h)
+                            j = array[0]
                         if type(j) is int:
                             array[len(array) - 1] = [j, i]
                         elif type(j) is list:
                             array[len(array) - 1].append(i)
                 except AttributeError:
-                    print('That space was misleading, just keep swimming')
+                    if DEBUG: print('That space was misleading, just keep swimming')
                     pass
             # if nothing was found, there's only one prereq
             if len(array) == 0:
@@ -138,14 +142,7 @@ def getCourseData(semester, degree, concentration, id):
                 if type(array[i]) is list:
                     if len(array[i]) == 1:
                         array[i] = array[i][0]
-            prereqs = array[:]
-
-            # t = [];
-            # for j in prereqs:
-            #     for k, v in numberToID.items():
-            #         if v == str(j): t.append(k)
-            # print(number + '\'s prereqs: ' + str(prereqs))
-            # print(number + '\'s prereqs: ' + str(t))
+            prereqs = array[:] # copy array
         except IndexError:
             prereqs = []
             pass
